@@ -19,20 +19,20 @@ const quickTexts = [
     },
     {
         title: "Product Demo",
-        text: "Transform any written content into professional audio with our advanced text-to-speech technology. Choose from multiple voices and adjust speed to suit your needs."
+        text: "Transform any written content into professional audio with our advanced text-to-speech technology."
     },
     {
         title: "Educational Content",
-        text: "Did you know that text-to-speech technology helps millions of people with reading difficulties access written content more easily?"
+        text: "Did you know that text-to-speech technology helps millions of people access written content more easily?"
     },
     {
-        title: "Poetry Sample",
-        text: "Roses are red, violets are blue, VoiceStream makes voices that sound just like you!"
+        title: "Simple Test",
+        text: "Hello world! This is a test of the text to speech system."
     }
 ];
 
 // DOM Elements
-let textInput, speakBtn, stopBtn, clearBtn, voiceSelect, speedSlider, pitchSlider;
+let textInput, speakBtn, stopBtn, clearBtn, testBtn, voiceSelect, speedSlider, pitchSlider;
 let speedValue, pitchValue, charCount, speakingIndicator, quickTextsContainer;
 let historyList, totalRequestsElement, liveToggle, liveStatus;
 let connectionBadge, statusIndicator, statusText, toastContainer, browserSupport;
@@ -40,16 +40,20 @@ let connectionBadge, statusIndicator, statusText, toastContainer, browserSupport
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, initializing app...');
-    initializeDOMElements();
-    checkBrowserSupport();
-    initializeVoices();
-    initializeQuickTexts();
-    setupEventListeners();
-    simulateConnection();
-    updateDisplay();
-    loadHistoryFromStorage();
-    updateCharCount(); // Initialize character count
-    console.log('App initialization complete');
+    
+    // Wait a bit for the page to fully load
+    setTimeout(() => {
+        initializeDOMElements();
+        checkBrowserSupport();
+        initializeVoices();
+        initializeQuickTexts();
+        setupEventListeners();
+        simulateConnection();
+        updateDisplay();
+        loadHistoryFromStorage();
+        updateCharCount();
+        console.log('App initialization complete');
+    }, 100);
 });
 
 // Initialize DOM elements
@@ -58,6 +62,7 @@ function initializeDOMElements() {
     speakBtn = document.getElementById('speakBtn');
     stopBtn = document.getElementById('stopBtn');
     clearBtn = document.getElementById('clearBtn');
+    testBtn = document.getElementById('testBtn');
     voiceSelect = document.getElementById('voiceSelect');
     speedSlider = document.getElementById('speedSlider');
     pitchSlider = document.getElementById('pitchSlider');
@@ -81,9 +86,9 @@ function initializeDOMElements() {
 
 // Check browser support
 function checkBrowserSupport() {
-    if (!('speechSynthesis' in window)) {
+    if (!window.speechSynthesis) {
         console.error('Speech synthesis not supported');
-        const warning = browserSupport.querySelector('.support-warning');
+        const warning = browserSupport?.querySelector('.support-warning');
         if (warning) {
             warning.style.display = 'flex';
         }
@@ -99,55 +104,59 @@ function initializeVoices() {
     console.log('Initializing voices...');
     
     function loadVoices() {
-        voices = speechSynthesis.getVoices();
-        console.log('Available voices:', voices.length);
-        
-        if (!voiceSelect) {
-            console.error('Voice select element not found');
-            return;
-        }
-        
-        voiceSelect.innerHTML = '';
-        
-        if (voices.length === 0) {
-            voiceSelect.innerHTML = '<option value="">Loading voices...</option>';
-            console.log('No voices available yet, retrying...');
-            return;
-        }
-        
-        // Add default option
-        const defaultOption = document.createElement('option');
-        defaultOption.value = '';
-        defaultOption.textContent = 'Default Voice';
-        voiceSelect.appendChild(defaultOption);
-        
-        // Add all available voices
-        voices.forEach((voice, index) => {
-            const option = document.createElement('option');
-            option.value = index;
-            option.textContent = `${voice.name} (${voice.lang})`;
-            if (voice.default) {
-                option.textContent += ' - Default';
-                option.selected = true;
+        try {
+            voices = window.speechSynthesis.getVoices();
+            console.log('Available voices:', voices.length);
+            
+            if (!voiceSelect) {
+                console.error('Voice select element not found');
+                return;
             }
-            voiceSelect.appendChild(option);
-        });
-        
-        console.log('Voices loaded successfully:', voices.length);
+            
+            voiceSelect.innerHTML = '';
+            
+            if (voices.length === 0) {
+                voiceSelect.innerHTML = '<option value="">Loading voices...</option>';
+                console.log('No voices available yet, will retry...');
+                return;
+            }
+            
+            // Add default option
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Default Voice';
+            voiceSelect.appendChild(defaultOption);
+            
+            // Add all available voices
+            voices.forEach((voice, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                if (voice.default) {
+                    option.textContent += ' - Default';
+                }
+                voiceSelect.appendChild(option);
+            });
+            
+            console.log('Voices loaded successfully:', voices.length);
+        } catch (error) {
+            console.error('Error loading voices:', error);
+        }
     }
     
     // Load voices immediately
     loadVoices();
     
-    // Also listen for voice changes (some browsers load voices asynchronously)
-    if (speechSynthesis.onvoiceschanged !== undefined) {
-        speechSynthesis.onvoiceschanged = loadVoices;
+    // Listen for voice changes
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
     }
     
-    // Fallback: retry loading voices after a delay
+    // Multiple retry attempts for different browsers
     setTimeout(loadVoices, 100);
     setTimeout(loadVoices, 500);
     setTimeout(loadVoices, 1000);
+    setTimeout(loadVoices, 2000);
 }
 
 // Initialize quick start texts
@@ -164,13 +173,17 @@ function initializeQuickTexts() {
         quickTextDiv.innerHTML = `
             <div class="quick-text-header">
                 <div class="quick-text-title">${item.title}</div>
-                <button class="quick-text-btn" onclick="useQuickText(${index})">
+                <button class="quick-text-btn" data-index="${index}">
                     Use Text
                 </button>
             </div>
             <div class="quick-text-preview">${item.text}</div>
         `;
         quickTextsContainer.appendChild(quickTextDiv);
+        
+        // Add click event to the button
+        const btn = quickTextDiv.querySelector('.quick-text-btn');
+        btn.addEventListener('click', () => useQuickText(index));
     });
     console.log('Quick texts initialized');
 }
@@ -192,6 +205,9 @@ function setupEventListeners() {
         }
         if (clearBtn) {
             clearBtn.addEventListener('click', clearText);
+        }
+        if (testBtn) {
+            testBtn.addEventListener('click', testSpeech);
         }
         
         // Sliders
@@ -254,7 +270,7 @@ function useQuickText(index) {
     if (text) {
         textInput.value = text;
         updateCharCount();
-        showToast('Text loaded!', 'Quick text has been loaded into the input.', 'info');
+        showToast('Text loaded!', 'Quick text has been loaded into the input.', 'success');
     }
 }
 
@@ -267,102 +283,143 @@ function clearText() {
     showToast('Text cleared!', 'The input has been cleared.', 'info');
 }
 
-// Start speaking with comprehensive error handling
-function startSpeaking() {
-    console.log('Starting speech synthesis...');
+// Test speech function
+function testSpeech() {
+    console.log('Testing speech synthesis...');
     
-    if (!checkBrowserSupport()) {
+    if (!window.speechSynthesis) {
+        showToast('Error', 'Speech synthesis not supported', 'error');
+        return;
+    }
+    
+    // Simple test with minimal configuration
+    try {
+        const testText = "Hello! This is a speech synthesis test.";
+        const utterance = new SpeechSynthesisUtterance(testText);
+        
+        utterance.onstart = function() {
+            console.log('Test speech started');
+            showToast('Test Success', 'Speech synthesis is working!', 'success');
+        };
+        
+        utterance.onerror = function(event) {
+            console.error('Test speech error:', event);
+            showToast('Test Failed', `Error: ${event.error}`, 'error');
+        };
+        
+        utterance.onend = function() {
+            console.log('Test speech completed');
+        };
+        
+        window.speechSynthesis.speak(utterance);
+        
+    } catch (error) {
+        console.error('Test speech exception:', error);
+        showToast('Test Failed', 'Exception: ' + error.message, 'error');
+    }
+}
+
+// Start speaking - FIXED VERSION
+function startSpeaking() {
+    console.log('Start speaking clicked');
+    
+    // Check if speech synthesis is available
+    if (!window.speechSynthesis) {
+        console.error('Speech synthesis not available');
+        showToast('Error', 'Speech synthesis is not supported in your browser.', 'error');
         return;
     }
     
     const text = textInput ? textInput.value.trim() : '';
     if (!text) {
-        showToast('No text provided', 'Please enter some text to convert to speech.', 'info');
+        showToast('No text', 'Please enter some text to speak.', 'info');
         return;
     }
     
+    console.log('Speaking text:', text);
+    
     // Stop any current speech
-    if (isPlaying) {
-        stopSpeaking();
-    }
+    window.speechSynthesis.cancel();
     
     try {
-        // Create new utterance
+        // Create utterance
         currentUtterance = new SpeechSynthesisUtterance(text);
         
-        // Configure utterance
+        // Set basic properties
+        currentUtterance.rate = speedSlider ? parseFloat(speedSlider.value) : 1.0;
+        currentUtterance.pitch = pitchSlider ? parseFloat(pitchSlider.value) : 1.0;
+        currentUtterance.volume = 1.0;
+        
+        // Set voice if selected
         const selectedVoiceIndex = voiceSelect ? voiceSelect.value : '';
         if (selectedVoiceIndex && voices[selectedVoiceIndex]) {
             currentUtterance.voice = voices[selectedVoiceIndex];
             console.log('Using voice:', voices[selectedVoiceIndex].name);
-        } else {
-            console.log('Using default voice');
         }
-        
-        currentUtterance.rate = speedSlider ? parseFloat(speedSlider.value) : 1.0;
-        currentUtterance.pitch = pitchSlider ? parseFloat(pitchSlider.value) : 1.0;
         
         console.log('Speech settings:', {
             rate: currentUtterance.rate,
             pitch: currentUtterance.pitch,
+            volume: currentUtterance.volume,
             voice: currentUtterance.voice?.name || 'default'
         });
         
-        // Event listeners
-        currentUtterance.onstart = () => {
+        // Set up event listeners
+        currentUtterance.onstart = function() {
             console.log('Speech started');
             isPlaying = true;
             updatePlaybackState();
-            if (isLiveMode) {
-                showToast('Speech Started', 'Text-to-speech synthesis has begun.', 'success');
-            }
+            showToast('Speaking', 'Text-to-speech started', 'success');
         };
         
-        currentUtterance.onend = () => {
+        currentUtterance.onend = function() {
             console.log('Speech ended');
             isPlaying = false;
             currentUtterance = null;
             updatePlaybackState();
-            if (isLiveMode) {
-                showToast('Speech Completed', 'Text-to-speech synthesis finished.', 'info');
-            }
+            showToast('Complete', 'Speech finished', 'info');
         };
         
-        currentUtterance.onerror = (event) => {
+        currentUtterance.onerror = function(event) {
             console.error('Speech error:', event);
             isPlaying = false;
             currentUtterance = null;
             updatePlaybackState();
-            showToast('Speech Error', `An error occurred: ${event.error}`, 'error');
+            showToast('Error', `Speech failed: ${event.error}`, 'error');
         };
         
         // Start speaking
-        speechSynthesis.speak(currentUtterance);
-        console.log('Speech synthesis started');
+        window.speechSynthesis.speak(currentUtterance);
+        console.log('Speech synthesis command sent');
+        
+        // Update UI immediately
+        isPlaying = true;
+        updatePlaybackState();
         
         // Add to history
-        const voiceName = currentUtterance.voice?.name || 'Default';
-        addToHistory(text, voiceName, currentUtterance.rate, currentUtterance.pitch);
+        addToHistory(text, currentUtterance.voice?.name || 'Default', currentUtterance.rate, currentUtterance.pitch);
         
         // Update request count
         totalRequests++;
         updateDisplay();
         
     } catch (error) {
-        console.error('Error starting speech:', error);
-        showToast('Speech Error', 'Failed to start speech synthesis.', 'error');
+        console.error('Error in startSpeaking:', error);
+        showToast('Error', 'Failed to start speech: ' + error.message, 'error');
+        isPlaying = false;
+        updatePlaybackState();
     }
 }
 
 // Stop speaking
 function stopSpeaking() {
-    console.log('Stopping speech...');
+    console.log('Stop speaking');
     try {
-        speechSynthesis.cancel();
+        window.speechSynthesis.cancel();
         isPlaying = false;
         currentUtterance = null;
         updatePlaybackState();
-        console.log('Speech stopped');
+        showToast('Stopped', 'Speech stopped', 'info');
     } catch (error) {
         console.error('Error stopping speech:', error);
     }
@@ -375,6 +432,7 @@ function updatePlaybackState() {
     if (isPlaying) {
         speakBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Speaking...</span>';
         speakBtn.disabled = true;
+        speakBtn.style.opacity = '0.6';
         stopBtn.style.display = 'flex';
         if (speakingIndicator) {
             speakingIndicator.classList.add('active');
@@ -382,6 +440,7 @@ function updatePlaybackState() {
     } else {
         speakBtn.innerHTML = '<i class="fas fa-play"></i><span>Speak</span>';
         speakBtn.disabled = false;
+        speakBtn.style.opacity = '1';
         stopBtn.style.display = 'none';
         if (speakingIndicator) {
             speakingIndicator.classList.remove('active');
@@ -441,12 +500,16 @@ function updateHistoryDisplay() {
                 <div class="history-details">
                     Voice: ${item.voice} | Speed: ${item.speed}x | Pitch: ${item.pitch}
                 </div>
-                <button class="history-replay" onclick="replayHistory('${item.id}')">
+                <button class="history-replay" data-id="${item.id}">
                     <i class="fas fa-play"></i> Replay
                 </button>
             </div>
         `;
         historyList.appendChild(historyDiv);
+        
+        // Add event listener to replay button
+        const replayBtn = historyDiv.querySelector('.history-replay');
+        replayBtn.addEventListener('click', () => replayHistory(item.id));
     });
 }
 
@@ -469,7 +532,9 @@ function replayHistory(itemId) {
             }
         }
         
-        startSpeaking();
+        showToast('Loaded', 'History item loaded', 'info');
+        // Auto-start speaking
+        setTimeout(startSpeaking, 500);
     }
 }
 
@@ -479,12 +544,11 @@ function formatTime(date) {
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
     
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
+    return `${Math.floor(diffMs / 86400000)}d ago`;
 }
 
 // Toggle live mode
@@ -494,30 +558,28 @@ function toggleLiveMode() {
     isLiveMode = liveToggle.checked;
     if (isLiveMode) {
         liveStatus.classList.remove('hidden');
-        showToast('Live Mode Enabled', 'You will now receive real-time notifications.', 'success');
+        showToast('Live Mode On', 'Real-time notifications enabled', 'success');
     } else {
         liveStatus.classList.add('hidden');
-        showToast('Live Mode Disabled', 'Real-time notifications are now paused.', 'info');
+        showToast('Live Mode Off', 'Notifications paused', 'info');
     }
 }
 
 // Simulate connection status
 function simulateConnection() {
-    // Initial connection
     updateConnectionStatus();
     
-    // Simulate occasional connection status changes
     setInterval(() => {
-        if (Math.random() < 0.05) { // 5% chance every 5 seconds
+        if (Math.random() < 0.03) {
             connectionStatus = 'connecting';
             updateConnectionStatus();
             
             setTimeout(() => {
                 connectionStatus = 'connected';
                 updateConnectionStatus();
-            }, 1000 + Math.random() * 2000);
+            }, 1000 + Math.random() * 1000);
         }
-    }, 5000);
+    }, 10000);
 }
 
 // Update connection status display
@@ -556,15 +618,20 @@ function updateDisplay() {
     }
 }
 
-// Show toast notification
+// Show toast notification - IMPROVED
 function showToast(title, description, type = 'info') {
     if (!toastContainer) return;
-    if (!isLiveMode && type !== 'error') return;
     
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
+    
+    let iconClass = 'fas fa-info-circle';
+    if (type === 'success') iconClass = 'fas fa-check-circle';
+    if (type === 'error') iconClass = 'fas fa-exclamation-circle';
+    
     toast.innerHTML = `
         <div class="toast-header">
+            <i class="${iconClass}"></i>
             <div class="toast-title">${title}</div>
         </div>
         <div class="toast-description">${description}</div>
@@ -572,7 +639,7 @@ function showToast(title, description, type = 'info') {
     
     toastContainer.appendChild(toast);
     
-    // Remove toast after 4 seconds
+    // Auto remove after 3 seconds
     setTimeout(() => {
         if (toastContainer.contains(toast)) {
             toast.style.animation = 'slideOut 0.3s ease forwards';
@@ -582,33 +649,22 @@ function showToast(title, description, type = 'info') {
                 }
             }, 300);
         }
-    }, 4000);
+    }, 3000);
 }
 
 // Keyboard shortcuts
 function handleKeyboardShortcuts(event) {
     if (event.ctrlKey || event.metaKey) {
-        switch (event.key) {
-            case 'Enter':
-                event.preventDefault();
-                if (!isPlaying) {
-                    startSpeaking();
-                }
-                break;
-            case ' ':
-                if (event.target !== textInput) {
-                    event.preventDefault();
-                    if (isPlaying) {
-                        stopSpeaking();
-                    } else {
-                        startSpeaking();
-                    }
-                }
-                break;
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            if (!isPlaying) {
+                startSpeaking();
+            }
         }
     }
     
     if (event.key === 'Escape' && isPlaying) {
+        event.preventDefault();
         stopSpeaking();
     }
 }
@@ -645,21 +701,14 @@ function loadHistoryFromStorage() {
     }
 }
 
-// Add CSS animation for slideOut
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideOut {
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
+// Test speech synthesis on page load
+setTimeout(() => {
+    if (window.speechSynthesis) {
+        console.log('Speech synthesis available');
+        const testUtterance = new SpeechSynthesisUtterance('');
+        testUtterance.volume = 0;
+        window.speechSynthesis.speak(testUtterance);
     }
-`;
-document.head.appendChild(style);
-
-// Global error handler
-window.addEventListener('error', function(event) {
-    console.error('Global error:', event.error);
-});
+}, 1000);
 
 console.log('Script loaded successfully');
