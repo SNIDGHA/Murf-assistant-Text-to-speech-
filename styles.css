@@ -690,3 +690,48 @@ input:checked + .slider:before {
         justify-content: center;
     }
 }
+
+/* Browser Support Warning */
+.browser-support {
+    margin-top: 16px;
+}
+
+.support-warning {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 8px;
+    color: #dc2626;
+    font-size: 14px;
+}
+
+.support-warning i {
+    color: #dc2626;
+}
+
+/* Fix for toast animations */
+@keyframes slideOut {
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Ensure proper loading of elements */
+.card-content {
+    min-height: 200px;
+}
+
+/* Better error handling styles */
+.error-message {
+    padding: 12px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 8px;
+    color: #dc2626;
+    font-size: 14px;
+    margin-top: 16px;
+}

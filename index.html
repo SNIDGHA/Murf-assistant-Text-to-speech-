@@ -27,7 +27,7 @@
                     <div class="header-right">
                         <button class="auth-btn" id="authBtn">
                             <i class="fas fa-user"></i>
-                            <span>Sign In</span>
+                            <span>Guest User</span>
                         </button>
                     </div>
                 </div>
@@ -54,7 +54,7 @@
                                         id="textInput" 
                                         placeholder="Enter the text you want to convert to speech..."
                                         maxlength="500"
-                                    ></textarea>
+                                    >Hello! Welcome to VoiceStream. This is a demonstration of text-to-speech technology.</textarea>
                                     <div class="text-info">
                                         <span class="char-count" id="charCount">0/500 characters</span>
                                         <div class="speaking-indicator" id="speakingIndicator">
@@ -73,7 +73,7 @@
                                         <div class="control-group">
                                             <label for="voiceSelect">Voice</label>
                                             <select id="voiceSelect">
-                                                <option value="0">Default Voice</option>
+                                                <option value="">Loading voices...</option>
                                             </select>
                                         </div>
                                         <div class="control-group">
@@ -96,10 +96,17 @@
                                         <i class="fas fa-stop"></i>
                                         <span>Stop</span>
                                     </button>
-                                    <button class="btn-outline" id="pauseBtn" style="display: none;">
-                                        <i class="fas fa-pause"></i>
-                                        <span>Pause</span>
+                                    <button class="btn-outline" id="clearBtn">
+                                        <i class="fas fa-trash"></i>
+                                        <span>Clear</span>
                                     </button>
+                                </div>
+
+                                <div class="browser-support" id="browserSupport">
+                                    <div class="support-warning" style="display: none;">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <span>Your browser may not fully support text-to-speech. Try Chrome, Firefox, or Safari.</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

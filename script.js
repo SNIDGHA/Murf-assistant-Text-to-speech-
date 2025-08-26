@@ -32,48 +32,96 @@ const quickTexts = [
 ];
 
 // DOM Elements
-const textInput = document.getElementById('textInput');
-const speakBtn = document.getElementById('speakBtn');
-const stopBtn = document.getElementById('stopBtn');
-const pauseBtn = document.getElementById('pauseBtn');
-const voiceSelect = document.getElementById('voiceSelect');
-const speedSlider = document.getElementById('speedSlider');
-const pitchSlider = document.getElementById('pitchSlider');
-const speedValue = document.getElementById('speedValue');
-const pitchValue = document.getElementById('pitchValue');
-const charCount = document.getElementById('charCount');
-const speakingIndicator = document.getElementById('speakingIndicator');
-const quickTextsContainer = document.getElementById('quickTexts');
-const historyList = document.getElementById('historyList');
-const totalRequestsElement = document.getElementById('totalRequests');
-const liveToggle = document.getElementById('liveToggle');
-const liveStatus = document.getElementById('liveStatus');
-const connectionBadge = document.getElementById('connectionBadge');
-const statusIndicator = document.getElementById('statusIndicator');
-const statusText = document.getElementById('statusText');
-const toastContainer = document.getElementById('toastContainer');
+let textInput, speakBtn, stopBtn, clearBtn, voiceSelect, speedSlider, pitchSlider;
+let speedValue, pitchValue, charCount, speakingIndicator, quickTextsContainer;
+let historyList, totalRequestsElement, liveToggle, liveStatus;
+let connectionBadge, statusIndicator, statusText, toastContainer, browserSupport;
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing app...');
+    initializeDOMElements();
+    checkBrowserSupport();
     initializeVoices();
     initializeQuickTexts();
     setupEventListeners();
     simulateConnection();
     updateDisplay();
     loadHistoryFromStorage();
+    updateCharCount(); // Initialize character count
+    console.log('App initialization complete');
 });
 
-// Load voices
+// Initialize DOM elements
+function initializeDOMElements() {
+    textInput = document.getElementById('textInput');
+    speakBtn = document.getElementById('speakBtn');
+    stopBtn = document.getElementById('stopBtn');
+    clearBtn = document.getElementById('clearBtn');
+    voiceSelect = document.getElementById('voiceSelect');
+    speedSlider = document.getElementById('speedSlider');
+    pitchSlider = document.getElementById('pitchSlider');
+    speedValue = document.getElementById('speedValue');
+    pitchValue = document.getElementById('pitchValue');
+    charCount = document.getElementById('charCount');
+    speakingIndicator = document.getElementById('speakingIndicator');
+    quickTextsContainer = document.getElementById('quickTexts');
+    historyList = document.getElementById('historyList');
+    totalRequestsElement = document.getElementById('totalRequests');
+    liveToggle = document.getElementById('liveToggle');
+    liveStatus = document.getElementById('liveStatus');
+    connectionBadge = document.getElementById('connectionBadge');
+    statusIndicator = document.getElementById('statusIndicator');
+    statusText = document.getElementById('statusText');
+    toastContainer = document.getElementById('toastContainer');
+    browserSupport = document.getElementById('browserSupport');
+    
+    console.log('DOM elements initialized');
+}
+
+// Check browser support
+function checkBrowserSupport() {
+    if (!('speechSynthesis' in window)) {
+        console.error('Speech synthesis not supported');
+        const warning = browserSupport.querySelector('.support-warning');
+        if (warning) {
+            warning.style.display = 'flex';
+        }
+        showToast('Browser Not Supported', 'Your browser does not support text-to-speech. Please use Chrome, Firefox, or Safari.', 'error');
+        return false;
+    }
+    console.log('Speech synthesis supported');
+    return true;
+}
+
+// Load voices with better error handling
 function initializeVoices() {
+    console.log('Initializing voices...');
+    
     function loadVoices() {
         voices = speechSynthesis.getVoices();
+        console.log('Available voices:', voices.length);
+        
+        if (!voiceSelect) {
+            console.error('Voice select element not found');
+            return;
+        }
+        
         voiceSelect.innerHTML = '';
         
         if (voices.length === 0) {
             voiceSelect.innerHTML = '<option value="">Loading voices...</option>';
+            console.log('No voices available yet, retrying...');
             return;
         }
         
+        // Add default option
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'Default Voice';
+        voiceSelect.appendChild(defaultOption);
+        
+        // Add all available voices
         voices.forEach((voice, index) => {
             const option = document.createElement('option');
             option.value = index;
@@ -84,22 +132,39 @@ function initializeVoices() {
             }
             voiceSelect.appendChild(option);
         });
+        
+        console.log('Voices loaded successfully:', voices.length);
     }
     
+    // Load voices immediately
     loadVoices();
-    speechSynthesis.onvoiceschanged = loadVoices;
+    
+    // Also listen for voice changes (some browsers load voices asynchronously)
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+    }
+    
+    // Fallback: retry loading voices after a delay
+    setTimeout(loadVoices, 100);
+    setTimeout(loadVoices, 500);
+    setTimeout(loadVoices, 1000);
 }
 
 // Initialize quick start texts
 function initializeQuickTexts() {
+    if (!quickTextsContainer) {
+        console.error('Quick texts container not found');
+        return;
+    }
+    
     quickTextsContainer.innerHTML = '';
-    quickTexts.forEach(item => {
+    quickTexts.forEach((item, index) => {
         const quickTextDiv = document.createElement('div');
         quickTextDiv.className = 'quick-text-item';
         quickTextDiv.innerHTML = `
             <div class="quick-text-header">
                 <div class="quick-text-title">${item.title}</div>
-                <button class="quick-text-btn" onclick="useQuickText('${item.text.replace(/'/g, "\\'")}')">
+                <button class="quick-text-btn" onclick="useQuickText(${index})">
                     Use Text
                 </button>
             </div>
@@ -107,31 +172,54 @@ function initializeQuickTexts() {
         `;
         quickTextsContainer.appendChild(quickTextDiv);
     });
+    console.log('Quick texts initialized');
 }
 
-// Setup event listeners
+// Setup event listeners with error handling
 function setupEventListeners() {
-    // Text input
-    textInput.addEventListener('input', updateCharCount);
-    
-    // Control buttons
-    speakBtn.addEventListener('click', startSpeaking);
-    stopBtn.addEventListener('click', stopSpeaking);
-    pauseBtn.addEventListener('click', pauseSpeaking);
-    
-    // Sliders
-    speedSlider.addEventListener('input', updateSpeedValue);
-    pitchSlider.addEventListener('input', updatePitchValue);
-    
-    // Live mode toggle
-    liveToggle.addEventListener('change', toggleLiveMode);
-    
-    // Keyboard shortcuts
-    document.addEventListener('keydown', handleKeyboardShortcuts);
+    try {
+        // Text input
+        if (textInput) {
+            textInput.addEventListener('input', updateCharCount);
+        }
+        
+        // Control buttons
+        if (speakBtn) {
+            speakBtn.addEventListener('click', startSpeaking);
+        }
+        if (stopBtn) {
+            stopBtn.addEventListener('click', stopSpeaking);
+        }
+        if (clearBtn) {
+            clearBtn.addEventListener('click', clearText);
+        }
+        
+        // Sliders
+        if (speedSlider) {
+            speedSlider.addEventListener('input', updateSpeedValue);
+        }
+        if (pitchSlider) {
+            pitchSlider.addEventListener('input', updatePitchValue);
+        }
+        
+        // Live mode toggle
+        if (liveToggle) {
+            liveToggle.addEventListener('change', toggleLiveMode);
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', handleKeyboardShortcuts);
+        
+        console.log('Event listeners setup complete');
+    } catch (error) {
+        console.error('Error setting up event listeners:', error);
+    }
 }
 
 // Update character count
 function updateCharCount() {
+    if (!textInput || !charCount) return;
+    
     const count = textInput.value.length;
     charCount.textContent = `${count}/500 characters`;
     
@@ -146,24 +234,48 @@ function updateCharCount() {
 
 // Update speed value display
 function updateSpeedValue() {
-    speedValue.textContent = `${speedSlider.value}x`;
+    if (speedValue && speedSlider) {
+        speedValue.textContent = `${speedSlider.value}x`;
+    }
 }
 
 // Update pitch value display  
 function updatePitchValue() {
-    pitchValue.textContent = pitchSlider.value;
+    if (pitchValue && pitchSlider) {
+        pitchValue.textContent = pitchSlider.value;
+    }
 }
 
 // Use quick text
-function useQuickText(text) {
-    textInput.value = text;
-    updateCharCount();
-    showToast('Text loaded!', 'Quick text has been loaded into the input.', 'info');
+function useQuickText(index) {
+    if (!textInput) return;
+    
+    const text = quickTexts[index]?.text;
+    if (text) {
+        textInput.value = text;
+        updateCharCount();
+        showToast('Text loaded!', 'Quick text has been loaded into the input.', 'info');
+    }
 }
 
-// Start speaking
+// Clear text
+function clearText() {
+    if (!textInput) return;
+    
+    textInput.value = '';
+    updateCharCount();
+    showToast('Text cleared!', 'The input has been cleared.', 'info');
+}
+
+// Start speaking with comprehensive error handling
 function startSpeaking() {
-    const text = textInput.value.trim();
+    console.log('Starting speech synthesis...');
+    
+    if (!checkBrowserSupport()) {
+        return;
+    }
+    
+    const text = textInput ? textInput.value.trim() : '';
     if (!text) {
         showToast('No text provided', 'Please enter some text to convert to speech.', 'info');
         return;
@@ -174,85 +286,106 @@ function startSpeaking() {
         stopSpeaking();
     }
     
-    // Create new utterance
-    currentUtterance = new SpeechSynthesisUtterance(text);
-    
-    // Configure utterance
-    const selectedVoiceIndex = voiceSelect.value;
-    if (selectedVoiceIndex && voices[selectedVoiceIndex]) {
-        currentUtterance.voice = voices[selectedVoiceIndex];
+    try {
+        // Create new utterance
+        currentUtterance = new SpeechSynthesisUtterance(text);
+        
+        // Configure utterance
+        const selectedVoiceIndex = voiceSelect ? voiceSelect.value : '';
+        if (selectedVoiceIndex && voices[selectedVoiceIndex]) {
+            currentUtterance.voice = voices[selectedVoiceIndex];
+            console.log('Using voice:', voices[selectedVoiceIndex].name);
+        } else {
+            console.log('Using default voice');
+        }
+        
+        currentUtterance.rate = speedSlider ? parseFloat(speedSlider.value) : 1.0;
+        currentUtterance.pitch = pitchSlider ? parseFloat(pitchSlider.value) : 1.0;
+        
+        console.log('Speech settings:', {
+            rate: currentUtterance.rate,
+            pitch: currentUtterance.pitch,
+            voice: currentUtterance.voice?.name || 'default'
+        });
+        
+        // Event listeners
+        currentUtterance.onstart = () => {
+            console.log('Speech started');
+            isPlaying = true;
+            updatePlaybackState();
+            if (isLiveMode) {
+                showToast('Speech Started', 'Text-to-speech synthesis has begun.', 'success');
+            }
+        };
+        
+        currentUtterance.onend = () => {
+            console.log('Speech ended');
+            isPlaying = false;
+            currentUtterance = null;
+            updatePlaybackState();
+            if (isLiveMode) {
+                showToast('Speech Completed', 'Text-to-speech synthesis finished.', 'info');
+            }
+        };
+        
+        currentUtterance.onerror = (event) => {
+            console.error('Speech error:', event);
+            isPlaying = false;
+            currentUtterance = null;
+            updatePlaybackState();
+            showToast('Speech Error', `An error occurred: ${event.error}`, 'error');
+        };
+        
+        // Start speaking
+        speechSynthesis.speak(currentUtterance);
+        console.log('Speech synthesis started');
+        
+        // Add to history
+        const voiceName = currentUtterance.voice?.name || 'Default';
+        addToHistory(text, voiceName, currentUtterance.rate, currentUtterance.pitch);
+        
+        // Update request count
+        totalRequests++;
+        updateDisplay();
+        
+    } catch (error) {
+        console.error('Error starting speech:', error);
+        showToast('Speech Error', 'Failed to start speech synthesis.', 'error');
     }
-    
-    currentUtterance.rate = parseFloat(speedSlider.value);
-    currentUtterance.pitch = parseFloat(pitchSlider.value);
-    
-    // Event listeners
-    currentUtterance.onstart = () => {
-        isPlaying = true;
-        updatePlaybackState();
-        if (isLiveMode) {
-            showToast('Speech Started', 'Text-to-speech synthesis has begun.', 'success');
-        }
-    };
-    
-    currentUtterance.onend = () => {
-        isPlaying = false;
-        currentUtterance = null;
-        updatePlaybackState();
-        if (isLiveMode) {
-            showToast('Speech Completed', 'Text-to-speech synthesis finished.', 'info');
-        }
-    };
-    
-    currentUtterance.onerror = (event) => {
-        isPlaying = false;
-        currentUtterance = null;
-        updatePlaybackState();
-        showToast('Speech Error', `An error occurred: ${event.error}`, 'error');
-    };
-    
-    // Start speaking
-    speechSynthesis.speak(currentUtterance);
-    
-    // Add to history
-    addToHistory(text, voices[selectedVoiceIndex]?.name || 'Default', speedSlider.value, pitchSlider.value);
-    
-    // Update request count
-    totalRequests++;
-    updateDisplay();
 }
 
 // Stop speaking
 function stopSpeaking() {
-    speechSynthesis.cancel();
-    isPlaying = false;
-    currentUtterance = null;
-    updatePlaybackState();
-}
-
-// Pause speaking (actually stops and restarts from beginning due to API limitations)
-function pauseSpeaking() {
-    if (speechSynthesis.speaking && !speechSynthesis.paused) {
-        speechSynthesis.pause();
-    } else if (speechSynthesis.paused) {
-        speechSynthesis.resume();
+    console.log('Stopping speech...');
+    try {
+        speechSynthesis.cancel();
+        isPlaying = false;
+        currentUtterance = null;
+        updatePlaybackState();
+        console.log('Speech stopped');
+    } catch (error) {
+        console.error('Error stopping speech:', error);
     }
 }
 
 // Update playback state UI
 function updatePlaybackState() {
+    if (!speakBtn || !stopBtn) return;
+    
     if (isPlaying) {
         speakBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Speaking...</span>';
         speakBtn.disabled = true;
         stopBtn.style.display = 'flex';
-        pauseBtn.style.display = 'flex';
-        speakingIndicator.classList.add('active');
+        if (speakingIndicator) {
+            speakingIndicator.classList.add('active');
+        }
     } else {
         speakBtn.innerHTML = '<i class="fas fa-play"></i><span>Speak</span>';
         speakBtn.disabled = false;
         stopBtn.style.display = 'none';
-        pauseBtn.style.display = 'none';
-        speakingIndicator.classList.remove('active');
+        if (speakingIndicator) {
+            speakingIndicator.classList.remove('active');
+        }
     }
 }
 
@@ -281,6 +414,8 @@ function addToHistory(text, voice, speed, pitch) {
 
 // Update history display
 function updateHistoryDisplay() {
+    if (!historyList) return;
+    
     if (speechHistory.length === 0) {
         historyList.innerHTML = `
             <div class="empty-state">
@@ -318,7 +453,7 @@ function updateHistoryDisplay() {
 // Replay from history
 function replayHistory(itemId) {
     const item = speechHistory.find(h => h.id == itemId);
-    if (item) {
+    if (item && textInput && speedSlider && pitchSlider) {
         textInput.value = item.text;
         speedSlider.value = item.speed;
         pitchSlider.value = item.pitch;
@@ -327,9 +462,11 @@ function replayHistory(itemId) {
         updatePitchValue();
         
         // Find and select the voice
-        const voiceIndex = voices.findIndex(v => v.name === item.voice);
-        if (voiceIndex !== -1) {
-            voiceSelect.value = voiceIndex;
+        if (voiceSelect) {
+            const voiceIndex = voices.findIndex(v => v.name === item.voice);
+            if (voiceIndex !== -1) {
+                voiceSelect.value = voiceIndex;
+            }
         }
         
         startSpeaking();
@@ -352,6 +489,8 @@ function formatTime(date) {
 
 // Toggle live mode
 function toggleLiveMode() {
+    if (!liveToggle || !liveStatus) return;
+    
     isLiveMode = liveToggle.checked;
     if (isLiveMode) {
         liveStatus.classList.remove('hidden');
@@ -364,6 +503,9 @@ function toggleLiveMode() {
 
 // Simulate connection status
 function simulateConnection() {
+    // Initial connection
+    updateConnectionStatus();
+    
     // Simulate occasional connection status changes
     setInterval(() => {
         if (Math.random() < 0.05) { // 5% chance every 5 seconds
@@ -380,45 +522,43 @@ function simulateConnection() {
 
 // Update connection status display
 function updateConnectionStatus() {
-    const badge = connectionBadge;
-    const indicator = statusIndicator;
-    const text = statusText;
+    if (!connectionBadge || !statusIndicator || !statusText) return;
     
     switch (connectionStatus) {
         case 'connecting':
-            badge.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Connecting</span>';
-            badge.className = 'status-badge connecting';
-            badge.style.background = '#f59e0b';
-            indicator.style.background = '#f59e0b';
-            text.textContent = 'CONNECTING';
-            text.style.color = '#f59e0b';
+            connectionBadge.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Connecting</span>';
+            connectionBadge.style.background = '#f59e0b';
+            statusIndicator.style.background = '#f59e0b';
+            statusText.textContent = 'CONNECTING';
+            statusText.style.color = '#f59e0b';
             break;
         case 'connected':
-            badge.innerHTML = '<i class="fas fa-wifi"></i><span>Connected</span>';
-            badge.className = 'status-badge connected';
-            badge.style.background = '#10b981';
-            indicator.style.background = '#10b981';
-            text.textContent = 'LIVE';
-            text.style.color = '#10b981';
+            connectionBadge.innerHTML = '<i class="fas fa-wifi"></i><span>Connected</span>';
+            connectionBadge.style.background = '#10b981';
+            statusIndicator.style.background = '#10b981';
+            statusText.textContent = 'LIVE';
+            statusText.style.color = '#10b981';
             break;
         case 'disconnected':
-            badge.innerHTML = '<i class="fas fa-wifi-slash"></i><span>Disconnected</span>';
-            badge.className = 'status-badge disconnected';
-            badge.style.background = '#ef4444';
-            indicator.style.background = '#ef4444';
-            text.textContent = 'OFFLINE';
-            text.style.color = '#ef4444';
+            connectionBadge.innerHTML = '<i class="fas fa-wifi-slash"></i><span>Disconnected</span>';
+            connectionBadge.style.background = '#ef4444';
+            statusIndicator.style.background = '#ef4444';
+            statusText.textContent = 'OFFLINE';
+            statusText.style.color = '#ef4444';
             break;
     }
 }
 
 // Update display elements
 function updateDisplay() {
-    totalRequestsElement.textContent = totalRequests;
+    if (totalRequestsElement) {
+        totalRequestsElement.textContent = totalRequests;
+    }
 }
 
 // Show toast notification
 function showToast(title, description, type = 'info') {
+    if (!toastContainer) return;
     if (!isLiveMode && type !== 'error') return;
     
     const toast = document.createElement('div');
@@ -434,12 +574,14 @@ function showToast(title, description, type = 'info') {
     
     // Remove toast after 4 seconds
     setTimeout(() => {
-        toast.style.animation = 'slideOut 0.3s ease forwards';
-        setTimeout(() => {
-            if (toastContainer.contains(toast)) {
-                toastContainer.removeChild(toast);
-            }
-        }, 300);
+        if (toastContainer.contains(toast)) {
+            toast.style.animation = 'slideOut 0.3s ease forwards';
+            setTimeout(() => {
+                if (toastContainer.contains(toast)) {
+                    toastContainer.removeChild(toast);
+                }
+            }, 300);
+        }
     }, 4000);
 }
 
@@ -514,3 +656,10 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Global error handler
+window.addEventListener('error', function(event) {
+    console.error('Global error:', event.error);
+});
+
+console.log('Script loaded successfully');
