@@ -1,56 +1,184 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceStream - Real-time Text to Speech</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <div class="header-left">
+                        <div class="logo">
+                            <i class="fas fa-volume-up"></i>
+                            <h1>VoiceStream</h1>
+                        </div>
+                        <div class="connection-status" id="connectionStatus">
+                            <div class="status-indicator" id="statusIndicator"></div>
+                            <span class="status-text" id="statusText">LIVE</span>
+                        </div>
+                    </div>
+                    <div class="header-right">
+                        <button class="auth-btn" id="authBtn">
+                            <i class="fas fa-user"></i>
+                            <span>Sign In</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="header-description">
+                    <p>Transform your text into natural-sounding speech instantly with real-time processing</p>
+                </div>
+            </div>
+        </header>
 
-    <title>Hercules App</title>
-    <meta name="description" content="An app made by https://hercules.app" />
-    <meta name="author" content="Hercules" />
-    <link
-      rel="icon"
-      type="image/svg+xml"
-      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>"
-    />
+        <!-- Main Content -->
+        <main class="main">
+            <div class="container">
+                <div class="content-grid">
+                    <!-- TTS Interface -->
+                    <div class="tts-section">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2><i class="fas fa-microphone"></i> Text to Speech</h2>
+                                <p>Enter your text below and click speak to hear it instantly</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="text-input-section">
+                                    <textarea 
+                                        id="textInput" 
+                                        placeholder="Enter the text you want to convert to speech..."
+                                        maxlength="500"
+                                    ></textarea>
+                                    <div class="text-info">
+                                        <span class="char-count" id="charCount">0/500 characters</span>
+                                        <div class="speaking-indicator" id="speakingIndicator">
+                                            <div class="sound-bars">
+                                                <div class="bar"></div>
+                                                <div class="bar"></div>
+                                                <div class="bar"></div>
+                                            </div>
+                                            <span>Speaking...</span>
+                                        </div>
+                                    </div>
+                                </div>
 
-    <meta property="og:title" content="Hercules App" />
-    <meta
-      property="og:description"
-      content="An app made by https://hercules.app"
-    />
-    <meta property="og:type" content="website" />
-    <meta
-      property="og:image"
-      content="https://hercules.app/og/app/%VITE_HERCULES_WEBSITE_ID%.png"
-    />
-    <meta property="og:image:type" content="image/png" />
+                                <div class="controls-section">
+                                    <div class="voice-controls">
+                                        <div class="control-group">
+                                            <label for="voiceSelect">Voice</label>
+                                            <select id="voiceSelect">
+                                                <option value="0">Default Voice</option>
+                                            </select>
+                                        </div>
+                                        <div class="control-group">
+                                            <label for="speedSlider">Speed: <span id="speedValue">1.0x</span></label>
+                                            <input type="range" id="speedSlider" min="0.5" max="2.0" step="0.1" value="1.0">
+                                        </div>
+                                        <div class="control-group">
+                                            <label for="pitchSlider">Pitch: <span id="pitchValue">1.0</span></label>
+                                            <input type="range" id="pitchSlider" min="0.5" max="2.0" step="0.1" value="1.0">
+                                        </div>
+                                    </div>
+                                </div>
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta
-      name="twitter:image"
-      content="https://hercules.app/og/app/%VITE_HERCULES_WEBSITE_ID%.png"
-    />
-    <meta name="twitter:site" content="@UseHercules" />
+                                <div class="action-buttons">
+                                    <button class="btn-primary" id="speakBtn">
+                                        <i class="fas fa-play"></i>
+                                        <span>Speak</span>
+                                    </button>
+                                    <button class="btn-secondary" id="stopBtn" style="display: none;">
+                                        <i class="fas fa-stop"></i>
+                                        <span>Stop</span>
+                                    </button>
+                                    <button class="btn-outline" id="pauseBtn" style="display: none;">
+                                        <i class="fas fa-pause"></i>
+                                        <span>Pause</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-    <!-- Detect dark mode preference and set the class before next-themes loads. This avoids a flash of unstyled content (FOUC) when the page loads. -->
-    <script>
-      (function () {
-        try {
-          var theme = localStorage.getItem("theme");
-          if (theme === "system" || !theme) {
-            var prefersDark = window.matchMedia(
-              "(prefers-color-scheme: dark)",
-            ).matches;
-            theme = prefersDark ? "dark" : "light";
-          }
-          document.documentElement.classList.add(theme);
-        } catch (e) {}
-      })();
-    </script>
-    <link href="/src/index.css" rel="stylesheet" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+                    <!-- Sidebar -->
+                    <div class="sidebar">
+                        <!-- Quick Start -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-bolt"></i> Quick Start</h3>
+                                <p>Try these sample texts</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="quick-texts" id="quickTexts">
+                                    <!-- Quick text buttons will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Connection Status -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-wifi"></i> Real-time Status</h3>
+                                <p>Live connection information</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="status-items">
+                                    <div class="status-item">
+                                        <span>Connection</span>
+                                        <div class="status-badge" id="connectionBadge">
+                                            <i class="fas fa-wifi"></i>
+                                            <span>Connected</span>
+                                        </div>
+                                    </div>
+                                    <div class="status-item">
+                                        <span>Total Requests</span>
+                                        <div class="count-badge" id="totalRequests">0</div>
+                                    </div>
+                                    <div class="status-item">
+                                        <span>Live Updates</span>
+                                        <label class="switch">
+                                            <input type="checkbox" id="liveToggle" checked>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="live-status" id="liveStatus">
+                                    <div class="pulse-dot"></div>
+                                    <span>Receiving real-time updates</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Speech History -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-history"></i> Speech History</h3>
+                                <p>Your recent text-to-speech requests</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="history-list" id="historyList">
+                                    <div class="empty-state">
+                                        <i class="fas fa-clock"></i>
+                                        <p>No speech history yet</p>
+                                        <small>Your requests will appear here</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="script.js"></script>
+</body>
 </html>
